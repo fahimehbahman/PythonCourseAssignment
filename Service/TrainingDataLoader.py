@@ -12,7 +12,7 @@ class TrainingDataLoader(CSVLoader):
     def load(self):
         """Load CSV file and rename columns accordingly."""
         super().load()
-        self.df.columns = ['x', self.col_name]
+        self.df.columns = ['X', self.col_name]
 
     def validateCSVColumns(self, file_path):
         try:

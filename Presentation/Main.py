@@ -141,7 +141,7 @@ class Main:
 
             merged_df = dfs[0]
             for df in dfs[1:]:
-                merged_df = pd.merge(merged_df, df, on='x')
+                merged_df = pd.merge(merged_df, df, on='X')
 
             processor.save_to_db(merged_df, 'TrainingData')
 
@@ -159,7 +159,7 @@ class Main:
 
             # Calculate deviations for test data
             deviations = processor.calculate_deviation(test_df, ideal_df, best_fit_functions)
-            deviation_df = pd.DataFrame(deviations, columns=['x', 'y', 'ideal_function', 'deviation'])
+            deviation_df = pd.DataFrame(deviations, columns=['X', 'Y', 'ideal_function', 'deviation'])
             processor.save_to_db(deviation_df, 'TestResults')
 
             # Print the results
