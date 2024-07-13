@@ -22,49 +22,17 @@ class Main:
         self.root.title("Main")
         self.root.configure(background="white")
 
-        # Training file 1
-        lblPath1 = Label(self.root, text="Training file 1", bg="white")
+        # Training file
+        lblPath1 = Label(self.root, text="Training file ", bg="white")
         lblPath1.grid(row=0, column=0, padx=(10, 10), pady=10)
         button1 = Button(self.root, text="...", command=lambda: self.open_file_dialog(self.entryPath1))
         button1.grid(row=0, column=1, pady=10)
         self.entryPath1 = ttk.Entry(self.root, width=50)
         self.entryPath1.grid(row=0, column=2, padx=(10, 10), pady=10)
-        link1 = Label(self.root, text="Download Sample Training1 File", fg="blue", cursor="hand2", bg="white")
+        link1 = Label(self.root, text="Download Sample Training File", fg="blue", cursor="hand2", bg="white")
         link1.grid(row=0, column=3, padx=(10, 10), pady=10)
         link1.bind("<Button-1>", lambda e: self.open_url(os.path.abspath("SampleInputExcel//Training1.csv")))
 
-        # Training file 2
-        lblPath2 = Label(self.root, text="Training file 2", bg="white")
-        lblPath2.grid(row=1, column=0, padx=(10, 10), pady=10)
-        button2 = Button(self.root, text="...", command=lambda: self.open_file_dialog(self.entryPath2))
-        button2.grid(row=1, column=1, pady=10)
-        self.entryPath2 = ttk.Entry(self.root, width=50)
-        self.entryPath2.grid(row=1, column=2, padx=(10, 10), pady=10)
-        link2 = Label(self.root, text="Download Sample Training2 File", fg="blue", cursor="hand2", bg="white")
-        link2.grid(row=1, column=3, padx=(10, 10), pady=10)
-        link2.bind("<Button-1>", lambda e: self.open_url(os.path.abspath("SampleInputExcel//Training2.csv")))
-
-        # Training file 3
-        lblPath3 = Label(self.root, text="Training file 3", bg="white")
-        lblPath3.grid(row=2, column=0, padx=(10, 10), pady=10)
-        button3 = Button(self.root, text="...", command=lambda: self.open_file_dialog(self.entryPath3))
-        button3.grid(row=2, column=1, pady=10)
-        self.entryPath3 = ttk.Entry(self.root, width=50)
-        self.entryPath3.grid(row=2, column=2, padx=(10, 10), pady=10)
-        link3 = Label(self.root, text="Download Sample Training3 File", fg="blue", cursor="hand2", bg="white")
-        link3.grid(row=2, column=3, padx=(10, 10), pady=10)
-        link3.bind("<Button-1>", lambda e: self.open_url(os.path.abspath("SampleInputExcel//Training3.csv")))
-
-        # Training file 4
-        lblPath4 = Label(self.root, text="Training file 4", bg="white")
-        lblPath4.grid(row=3, column=0, padx=(10, 10), pady=10)
-        button4 = Button(self.root, text="...", command=lambda: self.open_file_dialog(self.entryPath4))
-        button4.grid(row=3, column=1, pady=10)
-        self.entryPath4 = ttk.Entry(self.root, width=50)
-        self.entryPath4.grid(row=3, column=2, padx=(10, 10), pady=10)
-        link4 = Label(self.root, text="Download Sample Training4 File", fg="blue", cursor="hand2", bg="white")
-        link4.grid(row=3, column=3, padx=(10, 10), pady=10)
-        link4.bind("<Button-1>", lambda e: self.open_url(os.path.abspath("SampleInputExcel//Training4.csv")))
 
         # Function file
         lblFunctionPath = Label(self.root, text="Function file", bg="white")
@@ -103,14 +71,11 @@ class Main:
 
 
     def register(self):
-        if self.entryPath1.get() == "" or self.entryPath2.get() == "" or self.entryPath3.get() == "" or self.entryPath4.get() == "" or self.entryFunction.get() == "" or self.entryTest.get() == "":
+        if self.entryPath1.get() == "" or self.entryFunction.get() == "" or self.entryTest.get() == "":
             msg.showinfo("Warning", "Please select all CSV files.")
             return
 
         filePath1 = self.entryPath1.get()
-        filePath2 = self.entryPath2.get()
-        filePath3 = self.entryPath3.get()
-        filePath4 = self.entryPath4.get()
         fileFunction = self.entryFunction.get()
         fileTest = self.entryTest.get()
 
@@ -119,14 +84,10 @@ class Main:
             # create an Instance from class
             ideal_loader = IdealFunctionLoader(fileFunction)
             test_loader = TestDataLoader(fileTest)
-            loaders = [TrainingDataLoader(filePath1, 'y1'), TrainingDataLoader(filePath2, 'y2'),
-                       TrainingDataLoader(filePath3, 'y3'), TrainingDataLoader(filePath4, 'y4')]
+            trainer_loader = TrainingDataLoader(filePath1)
 
             # Validate CSV columns
-            loaders[0].validateCSVColumns(filePath1)
-            loaders[1].validateCSVColumns(filePath2)
-            loaders[2].validateCSVColumns(filePath3)
-            loaders[3].validateCSVColumns(filePath4)
+            trainer_loader.validateCSVColumns(filePath1)
             ideal_loader.validateCSVColumns(fileFunction)
             test_loader.validateCSVColumns(fileTest)
 
@@ -137,13 +98,10 @@ class Main:
 
             # Load training data into the database
 
-            dfs = [loader.load() or loader.get_dataframe() for loader in loaders]
+            trainer_loader.load()
+            trainer_df = trainer_loader.get_dataframe()
+            processor.save_to_db(trainer_df, 'Trainers')
 
-            merged_df = dfs[0]
-            for df in dfs[1:]:
-                merged_df = pd.merge(merged_df, df, on='X')
-
-            processor.save_to_db(merged_df, 'TrainingData')
 
             # Load ideal functions data into the database
             ideal_loader.load()
@@ -155,7 +113,7 @@ class Main:
             test_df = test_loader.get_dataframe()
 
             # Find the best fit functions for each training data column
-            best_fit_functions = processor.find_best_fit(merged_df, ideal_df)
+            best_fit_functions = processor.find_best_fit(trainer_df, ideal_df)
 
             # Calculate deviations for test data
             deviations = processor.calculate_deviation(test_df, ideal_df, best_fit_functions)
